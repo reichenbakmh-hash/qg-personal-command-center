@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "qg-personal-command-center",
+  "main": "./functions/worker.js",       // le point d'entrée de ton code API
+  "compatibility_date": "2026-08-14",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": "./dist",               // dossier de build de Vite
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]       // toutes les routes /api passent par ton Worker, le reste sert les fichiers statiques
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "qg-personal-command-center",
+      "database_id": "f7919372-b19b-4222-8d55-200483aa3b32"
+    }
+  ],
+
+  "ai": {
+    "binding": "AI"
+  },
+
+  "vars": {
+    "APP_NAME": "QG",
+    "APP_VERSION": "1.0.0",
+    "ENVIRONMENT": "production"
+  }
+}

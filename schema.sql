@@ -1,16 +1,5 @@
--- =====================================================================
--- QG — Personal Command Center — Schéma D1 (SQLite)
--- 18 tables, cohérent avec le modèle de données du cahier des charges :
--- User, Session, Settings, Campaign, Objective, Mission, Task, Event,
--- Note, IntelligenceRecord, Resource, Contact, Decision, Risk,
--- Notification, ActivityLog, Tag, EntityTag
--- =====================================================================
-
 PRAGMA foreign_keys = ON;
 
--- ---------------------------------------------------------------------
--- 1. USERS
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE,
@@ -20,9 +9,6 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- ---------------------------------------------------------------------
--- 2. SESSIONS
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -32,12 +18,9 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 
--- ---------------------------------------------------------------------
--- 3. SETTINGS (une ligne par utilisateur — préférences d'app)
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS settings (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  theme TEXT NOT NULL DEFAULT 'system',       -- light | dark | system
+  theme TEXT NOT NULL DEFAULT 'system',       
   language TEXT NOT NULL DEFAULT 'fr',
   timezone TEXT NOT NULL DEFAULT 'Indian/Antananarivo',
   week_starts_on TEXT NOT NULL DEFAULT 'monday',
@@ -45,20 +28,17 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- ---------------------------------------------------------------------
--- 4. CAMPAIGNS
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS campaigns (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   objective TEXT,
-  status TEXT NOT NULL DEFAULT 'Planned',     -- Active|Planned|Paused|At Risk|Completed|Archived
-  priority TEXT NOT NULL DEFAULT 'Medium',    -- Critical|High|Medium|Low
-  progress INTEGER NOT NULL DEFAULT 0,        -- 0-100
+  status TEXT NOT NULL DEFAULT 'Planned',     
+  priority TEXT NOT NULL DEFAULT 'Medium',    
+  progress INTEGER NOT NULL DEFAULT 0,        
   color TEXT DEFAULT '#8B5CF6',
   deadline TEXT,
-  risk_level TEXT DEFAULT 'Low',              -- Low|Medium|High
+  risk_level TEXT DEFAULT 'Low',              
   is_archived INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -66,15 +46,12 @@ CREATE TABLE IF NOT EXISTS campaigns (
 CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id);
 CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
 
--- ---------------------------------------------------------------------
--- 5. OBJECTIVES (stratégique ou opérationnel — rattaché à une campagne)
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS objectives (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   campaign_id TEXT REFERENCES campaigns(id) ON DELETE CASCADE,
   parent_objective_id TEXT REFERENCES objectives(id) ON DELETE SET NULL,
-  type TEXT NOT NULL DEFAULT 'operational',   -- strategic | operational
+  type TEXT NOT NULL DEFAULT 'operational',   
   title TEXT NOT NULL,
   description TEXT,
   status TEXT NOT NULL DEFAULT 'Planned',
@@ -84,22 +61,19 @@ CREATE TABLE IF NOT EXISTS objectives (
 );
 CREATE INDEX IF NOT EXISTS idx_objectives_campaign ON objectives(campaign_id);
 
--- ---------------------------------------------------------------------
--- 6. MISSIONS
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS missions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   campaign_id TEXT REFERENCES campaigns(id) ON DELETE CASCADE,
   objective_id TEXT REFERENCES objectives(id) ON DELETE SET NULL,
-  code TEXT,                                   -- ex: "042"
+  code TEXT,                                  
   name TEXT NOT NULL,
   description TEXT,
   context TEXT,
   constraints TEXT,
-  priority TEXT NOT NULL DEFAULT 'Medium',     -- Critical|High|Medium|Low
+  priority TEXT NOT NULL DEFAULT 'Medium',    
   difficulty TEXT DEFAULT 'Medium',
-  status TEXT NOT NULL DEFAULT 'Planned',      -- Planned|Ready|In Progress|Blocked|Completed|Failed|Cancelled
+  status TEXT NOT NULL DEFAULT 'Planned',    
   deadline TEXT,
   estimated_minutes INTEGER,
   actual_minutes INTEGER,
@@ -111,9 +85,6 @@ CREATE INDEX IF NOT EXISTS idx_missions_campaign ON missions(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_missions_status ON missions(status);
 CREATE INDEX IF NOT EXISTS idx_missions_deadline ON missions(deadline);
 
--- ---------------------------------------------------------------------
--- 7. TASKS (sous-étapes concrètes d'une mission)
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -126,9 +97,6 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 CREATE INDEX IF NOT EXISTS idx_tasks_mission ON tasks(mission_id);
 
--- ---------------------------------------------------------------------
--- 8. EVENTS (agenda)
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS events (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -140,7 +108,7 @@ CREATE TABLE IF NOT EXISTS events (
   ends_at TEXT,
   priority TEXT DEFAULT 'Medium',
   color TEXT DEFAULT '#8B5CF6',
-  recurrence_rule TEXT,                        -- RRULE iCal si répétition
+  recurrence_rule TEXT,                       
   is_completed INTEGER NOT NULL DEFAULT 0,
   reminder_minutes_before INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -148,9 +116,7 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS idx_events_user_start ON events(user_id, starts_at);
 
--- ---------------------------------------------------------------------
--- 9. NOTES
--- ---------------------------------------------------------------------
+
 CREATE TABLE IF NOT EXISTS notes (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -165,46 +131,37 @@ CREATE TABLE IF NOT EXISTS notes (
 );
 CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
 
--- ---------------------------------------------------------------------
--- 10. INTELLIGENCE_RECORDS (renseignements)
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS intelligence_records (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   campaign_id TEXT REFERENCES campaigns(id) ON DELETE SET NULL,
   mission_id TEXT REFERENCES missions(id) ON DELETE SET NULL,
-  category TEXT NOT NULL DEFAULT 'Fact',       -- Source|Observation|Research|Reference|Idea|Fact|Hypothesis|Brief
+  category TEXT NOT NULL DEFAULT 'Fact',      
   title TEXT NOT NULL,
   content TEXT,
-  source_reliability TEXT DEFAULT 'Medium',    -- Low|Medium|High
-  information_confidence TEXT DEFAULT 'Medium',-- Low|Medium|High
-  status TEXT NOT NULL DEFAULT 'Unprocessed',  -- Unprocessed|Reviewed|Verified|Archived
+  source_reliability TEXT DEFAULT 'Medium',    
+  information_confidence TEXT DEFAULT 'Medium',
+  status TEXT NOT NULL DEFAULT 'Unprocessed',
   recorded_at TEXT NOT NULL DEFAULT (datetime('now')),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_intel_user ON intelligence_records(user_id);
 
--- ---------------------------------------------------------------------
--- 11. RESOURCES
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS resources (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   campaign_id TEXT REFERENCES campaigns(id) ON DELETE SET NULL,
-  type TEXT NOT NULL DEFAULT 'Time',           -- Time|Money|Knowledge|Equipment|Documents|People|Skills
+  type TEXT NOT NULL DEFAULT 'Time',         
   name TEXT NOT NULL,
   quantity_required REAL,
   quantity_available REAL,
-  unit TEXT,                                    -- ex: "h", "€", "MGA"
+  unit TEXT,                                   
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_resources_campaign ON resources(campaign_id);
 
--- ---------------------------------------------------------------------
--- 12. CONTACTS
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS contacts (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -218,16 +175,13 @@ CREATE TABLE IF NOT EXISTS contacts (
 );
 CREATE INDEX IF NOT EXISTS idx_contacts_user ON contacts(user_id);
 
--- ---------------------------------------------------------------------
--- 13. DECISIONS (decision log)
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS decisions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   campaign_id TEXT REFERENCES campaigns(id) ON DELETE SET NULL,
   context TEXT,
   problem TEXT NOT NULL,
-  options_considered TEXT,                      -- JSON stringifié
+  options_considered TEXT,                   
   decision_made TEXT NOT NULL,
   justification TEXT,
   expected_outcome TEXT,
@@ -238,58 +192,46 @@ CREATE TABLE IF NOT EXISTS decisions (
 );
 CREATE INDEX IF NOT EXISTS idx_decisions_campaign ON decisions(campaign_id);
 
--- ---------------------------------------------------------------------
--- 14. RISKS
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS risks (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   campaign_id TEXT REFERENCES campaigns(id) ON DELETE CASCADE,
   mission_id TEXT REFERENCES missions(id) ON DELETE SET NULL,
   title TEXT NOT NULL,
-  probability TEXT DEFAULT 'Medium',            -- Low|Medium|High
-  impact TEXT DEFAULT 'Medium',                 -- Low|Medium|High
-  level TEXT DEFAULT 'Medium',                  -- calculé: Low|Medium|High|Critical
+  probability TEXT DEFAULT 'Medium',           
+  impact TEXT DEFAULT 'Medium',               
+  level TEXT DEFAULT 'Medium',                
   mitigation TEXT,
-  status TEXT NOT NULL DEFAULT 'Open',          -- Open|Mitigated|Resolved|Accepted
+  status TEXT NOT NULL DEFAULT 'Open',        
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_risks_campaign ON risks(campaign_id);
 
--- ---------------------------------------------------------------------
--- 15. NOTIFICATIONS
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,                           -- Deadline|Mission|Campaign|Risk|Conflict|Resource|Decision
+  type TEXT NOT NULL,                         
   title TEXT NOT NULL,
   body TEXT,
-  related_entity_type TEXT,                     -- 'mission' | 'campaign' | etc.
+  related_entity_type TEXT,                     
   related_entity_id TEXT,
   is_read INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
 
--- ---------------------------------------------------------------------
--- 16. ACTIVITY_LOG (journal d'activité système)
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS activity_log (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  entity_type TEXT NOT NULL,                    -- 'mission' | 'campaign' | 'note' | ...
+  entity_type TEXT NOT NULL,                 
   entity_id TEXT,
-  action TEXT NOT NULL,                         -- 'created' | 'updated' | 'completed' | 'archived' | ...
+  action TEXT NOT NULL,                        
   description TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_activity_user_time ON activity_log(user_id, created_at DESC);
 
--- ---------------------------------------------------------------------
--- 17. TAGS
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS tags (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -299,13 +241,10 @@ CREATE TABLE IF NOT EXISTS tags (
   UNIQUE(user_id, name)
 );
 
--- ---------------------------------------------------------------------
--- 18. ENTITY_TAGS (association many-to-many générique)
--- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS entity_tags (
   id TEXT PRIMARY KEY,
   tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-  entity_type TEXT NOT NULL,                    -- 'mission' | 'campaign' | 'note' | 'contact' | ...
+  entity_type TEXT NOT NULL,                
   entity_id TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(tag_id, entity_type, entity_id)
